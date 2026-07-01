@@ -1,0 +1,7 @@
+# Fine-grained tool authorization map.
+# Add agents / tools freely to extend the pattern.
+agents:
+  agent-1:
+    - get_weather
+  # agent-hr:
+  #   - list_employees

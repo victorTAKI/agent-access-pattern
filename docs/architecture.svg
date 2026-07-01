@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" font-family="ui-sans-serif,system-ui,Segoe UI,Arial" font-size="14">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box{fill:#f8fafc;stroke:#334155;stroke-width:1.5;rx:10;ry:10}
+      .accent{fill:#eef2ff;stroke:#4338ca}
+      .keycloak{fill:#fef3c7;stroke:#b45309}
+      .lbl{fill:#0f172a;font-weight:600}
+      .sub{fill:#475569;font-size:12px}
+      .edge{stroke:#334155;fill:none;stroke-width:1.5;marker-end:url(#a)}
+      .deny{stroke:#dc2626}
+      .ok{stroke:#16a34a}
+    </style>
+  </defs>
+
+  <rect class="box accent" x="20"  y="130" width="140" height="70"/>
+  <text class="lbl"        x="90"  y="160" text-anchor="middle">Streamlit UI</text>
+  <text class="sub"        x="90"  y="180" text-anchor="middle">login (OIDC)</text>
+
+  <rect class="box accent" x="220" y="130" width="140" height="70"/>
+  <text class="lbl"        x="290" y="160" text-anchor="middle">Agent (Strands)</text>
+  <text class="sub"        x="290" y="180" text-anchor="middle">RFC 8693 exchange</text>
+
+  <rect class="box accent" x="420" y="130" width="160" height="70"/>
+  <text class="lbl"        x="500" y="160" text-anchor="middle">MCP Gateway</text>
+  <text class="sub"        x="500" y="180" text-anchor="middle">JWT + ACL (FastMCP)</text>
+
+  <rect class="box"        x="640" y="130" width="140" height="70"/>
+  <text class="lbl"        x="710" y="160" text-anchor="middle">MCP Server</text>
+  <text class="sub"        x="710" y="180" text-anchor="middle">get_weather, list_employees</text>
+
+  <rect class="box keycloak" x="320" y="20" width="240" height="70"/>
+  <text class="lbl"          x="440" y="50" text-anchor="middle">Keycloak — realm: agents</text>
+  <text class="sub"          x="440" y="70" text-anchor="middle">ui-client · agent-1 · mcp-gateway</text>
+
+  <path class="edge" d="M160 165 L220 165"/>
+  <path class="edge" d="M360 165 L420 165"/>
+  <path class="edge ok"   d="M580 155 L640 155"/>
+  <text class="sub" x="610" y="145" text-anchor="middle">allow</text>
+  <path class="edge deny" d="M580 180 L620 180 L620 230 L500 230"/>
+  <text class="sub" x="560" y="250" fill="#dc2626">deny → 403</text>
+
+  <path class="edge" d="M290 130 L290 100 L400 100" stroke-dasharray="4 3"/>
+  <text class="sub" x="345" y="115" text-anchor="middle">token-exchange</text>
+  <path class="edge" d="M90 130 L90 100 L320 55" stroke-dasharray="4 3"/>
+  <text class="sub" x="150" y="115" text-anchor="middle">OIDC login</text>
+  <path class="edge" d="M500 130 L500 100 L500 90" stroke-dasharray="4 3"/>
+  <text class="sub" x="540" y="115" text-anchor="middle">JWKS</text>
+
+  <text class="sub" x="450" y="310" text-anchor="middle">User → UI → Agent (acts on-behalf-of) → Gateway (authorizes) → Server</text>
+</svg>

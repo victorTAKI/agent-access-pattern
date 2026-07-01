@@ -1,0 +1,125 @@
+name: agent-access-pattern
+
+# -----------------------------------------------------------------------------
+# Agent Access Pattern — reference implementation
+# UI → Agent → MCP Gateway → MCP Server, with Keycloak enforcing OAuth2
+# token-exchange (RFC 8693) and fine-grained tool authorization.
+# -----------------------------------------------------------------------------
+
+services:
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    container_name: aap-keycloak
+    command:
+      - start-dev
+      - --import-realm
+      - --http-port=8080
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      # Pin the canonical issuer so tokens always have the same `iss` claim
+      # regardless of which URL (localhost from the host, keycloak:8080 from
+      # inside the network) was used to obtain them. Without this, a token
+      # obtained via `curl http://localhost:8080` fails token-exchange from
+      # inside a container.
+      KC_HOSTNAME: http://keycloak:8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    volumes:
+      - ./keycloak/realm-agents.json:/opt/keycloak/data/import/realm-agents.json:ro
+    ports:
+      - "8080:8080"
+    networks: [aap]
+
+  mcp-server:
+    image: ${IMAGE_REGISTRY:-agent-access-pattern}/mcp-server:${IMAGE_TAG:-latest}
+    build: ./mcp-server
+    container_name: aap-mcp-server
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "9001"
+    ports:
+      - "9001:9001"
+    networks: [aap]
+
+  mcp-gateway:
+    image: ${IMAGE_REGISTRY:-agent-access-pattern}/mcp-gateway:${IMAGE_TAG:-latest}
+    build: ./mcp-gateway
+    container_name: aap-mcp-gateway
+    environment:
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: "9000"
+      UPSTREAM_MCP_URL: http://mcp-server:9001/mcp
+      OIDC_ISSUER: http://keycloak:8080/realms/agents
+      OIDC_AUDIENCE: mcp-gateway
+      # simple YAML permission map baked into the image; can be overridden
+      # via a mounted file for extension.
+      PERMISSIONS_FILE: /app/permissions.yaml
+    ports:
+      - "9000:9000"
+    depends_on:
+      keycloak:
+        condition: service_started
+      mcp-server:
+        condition: service_started
+    networks: [aap]
+
+  agent:
+    image: ${IMAGE_REGISTRY:-agent-access-pattern}/agent:${IMAGE_TAG:-latest}
+    build: ./agent
+    container_name: aap-agent
+    environment:
+      AGENT_HOST: 0.0.0.0
+      AGENT_PORT: "8000"
+      # OAuth2 / OIDC
+      OIDC_ISSUER: http://keycloak:8080/realms/agents
+      OIDC_ISSUER_INTERNAL: http://keycloak:8080/realms/agents
+      AGENT_CLIENT_ID: agent-1
+      AGENT_CLIENT_SECRET: agent-1-secret
+      # Upstream MCP Gateway
+      MCP_GATEWAY_URL: http://mcp-gateway:9000/mcp
+      # LLM configuration (Strands). Falls back to mock router if unset.
+      STRANDS_MODEL_PROVIDER: ${STRANDS_MODEL_PROVIDER:-mock}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-anthropic.claude-3-5-haiku-20241022-v1:0}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    ports:
+      - "8000:8000"
+    depends_on:
+      keycloak:
+        condition: service_started
+      mcp-gateway:
+        condition: service_started
+    networks: [aap]
+
+  ui:
+    image: ${IMAGE_REGISTRY:-agent-access-pattern}/ui:${IMAGE_TAG:-latest}
+    build: ./ui
+    container_name: aap-ui
+    environment:
+      # UI backend calls Keycloak directly for the password grant, so use
+      # the Docker network name here (not localhost).
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: agents
+      KEYCLOAK_CLIENT_ID: ui-client
+      AGENT_URL: http://agent:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      agent:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    networks: [aap]
+
+networks:
+  aap:
+    driver: bridge
