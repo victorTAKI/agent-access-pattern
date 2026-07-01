@@ -3,6 +3,10 @@
 > **Real OAuth2 for AI agents.** A drop-in reference implementation of the emerging *Agent Access Pattern* — user → agent → MCP gateway → MCP server — with Keycloak enforcing **RFC 8693 token exchange** and per-agent, per-tool authorization. One `docker compose up`, one `curl`, and you have a working pattern you can extend to production.
 
 <p align="center">
+  <img alt="demo" src="docs/demo.gif" width="720" />
+</p>
+
+<p align="center">
   <img alt="stack" src="docs/architecture.svg" width="720" />
 </p>
 
@@ -19,7 +23,20 @@ Batteries included : Streamlit UI, Strands agent, FastAPI + FastMCP gateway + se
 
 ## 🚀 Quickstart (30 seconds, no clone)
 
-If you just want to try it — pulls prebuilt images from GHCR, no build step :
+Pulls prebuilt images from GHCR, no build step required.
+
+### 1. Log in to AWS first (only if you use Bedrock)
+
+If you plan to use the default Bedrock provider, log in with your SSO profile **before** running the installer so the script can pick up your credentials :
+
+```bash
+aws sso login --profile <your-profile>
+aws configure export-credentials --profile <your-profile> --format env-no-export
+```
+
+> Skip this step if you'll use the `mock` provider (no LLM needed).
+
+### 2. Run the installer
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/victortaki/agent-access-pattern/main/install.sh | sh
@@ -32,6 +49,24 @@ Ask :
 - *"list the employees of the company"* → **`Agent 'agent-1' does not have permission to call tool 'list_employees'.`**
 
 That's the pattern. In production, swap the tools, the LLM, and the permission map — the flow stays identical.
+
+### 3. Update configuration
+
+If you edit any configuration and need to reload the stack :
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+### 4. Clean up
+
+Stop the stack, remove volumes, and delete pulled images :
+
+```bash
+docker compose down -v
+docker images | grep "agent-access-pattern" | awk '{print $3}' | xargs docker rmi -f
+```
 
 ---
 
